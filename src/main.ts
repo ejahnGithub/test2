@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
+import * as github from '@actions/github'
 import * as apiClient from './api-client'
 import * as tarHelper from './tar-helper'
-import * as github from '@actions/github'
 
 export async function run(): Promise<void> {
   try {
@@ -13,6 +13,31 @@ export async function run(): Promise<void> {
     if (github.context.eventName !== 'release') {
       core.setFailed('Please ensure you have the workflow trigger as release.')
       return
+    }
+
+    const repoFromContexPayload = github.context.payload.repository
+
+    if (repoFromContexPayload === undefined) {
+      core.setFailed(`Could not find Repository in context payload!`)
+      return
+    }
+    if (repoFromContexPayload.full_name !== repository) {
+      core.setFailed(
+        `Repository in context payload does not match the repository in the environment variable!`
+      )
+      return
+    }
+
+    const forcePubishPrivateRepo: boolean = core.getBooleanInput(
+      'force-publish-private-repo'
+    )
+
+    if (repoFromContexPayload?.visibility !== 'public') {
+      core.info(`Repository is not public.`)
+      if (!forcePubishPrivateRepo) {
+        core.info(`Please use a public repository for this action.`)
+        return
+      }
     }
 
     const path: string = core.getInput('path')

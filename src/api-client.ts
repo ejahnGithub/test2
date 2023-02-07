@@ -1,6 +1,13 @@
 import * as core from '@actions/core'
-import axios from 'axios'
 import * as fs from 'fs'
+import {sigstore} from 'sigstore'
+
+const signOptions = {
+  // oidcClientID: ?, //'sigstore',
+  // oidcIssuer: ?, //'https://oauth2.sigstore.dev/auth',
+  // rekorBaseURL: ,//sigstore.DEFAULT_REKOR_BASE_URL,
+  // fulcioBaseURL: ,
+}
 
 //returns the API Base Url
 export function getApiBaseUrl(): string {
@@ -16,30 +23,47 @@ export async function publishOciArtifact(
   try {
     const TOKEN: string = core.getInput('token')
     core.setSecret(TOKEN)
-    const path: string = core.getInput('path')
-    const publishPackageEndpoint = `${getApiBaseUrl()}/repos/${repository}/actions/package`
+    // const path: string = core.getInput('path')
+    // const publishPackageEndpoint = `${getApiBaseUrl()}/repos/${repository}/actions/package`
 
-    core.info(
-      `Creating GHCR package for release with semver:${semver} with path:"${path}"`
-    )
     const tempDir = '/tmp'
-    const fileStream = fs.createReadStream(`${tempDir}/archive.tar.gz`)
 
-    const response = await axios.post(publishPackageEndpoint, fileStream, {
-      headers: {
-        Accept: 'application/vnd.github.v3+json',
-        Authorization: `Bearer ${TOKEN}`,
-        'Content-type': 'application/octet-stream'
-      },
-      params: {
-        release_id: releaseId
-      }
-    })
+    const buffer = fs.readFileSync(`${tempDir}/archive.tar.gz`)
 
-    core.info(
-      `Created GHCR package for semver(${semver}) with package URL ${response.data.package_url}`
-    )
-    core.setOutput('package-url', `${response.data.package_url}`)
+    // Sign the package and get attestations
+    const attestations = await sigstore.sign(buffer)
+
+    // write the attestations to a file
+    fs.writeFileSync(`${tempDir}/bundle.sigstore`, JSON.stringify(attestations))
+    core.info(`Created attestations from GHCR package for semver(${semver})`)
+    // verify the package
+    try {
+      // reload the package
+      const reloadedBuffer = fs.readFileSync(`${tempDir}/archive.tar.gz`)
+
+      await sigstore.verify(attestations, reloadedBuffer)
+
+      core.info(`Verified the package for semver(${semver})`)
+    } catch (error) {
+      core.info(`Failed to verify the package with error: ${error}`)
+    }
+
+    // const fileStream = fs.createReadStream(`${tempDir}/archive.tar.gz`)
+
+    // const response = await axios.post(publishPackageEndpoint, fileStream, {
+    //   headers: {
+    //     Accept: 'application/vnd.github.v3+json',
+    //     Authorization: `Bearer ${TOKEN}`,
+    //     'Content-type': 'application/octet-stream'
+    //   },
+    //   params: {
+    //     release_id: releaseId
+    //   }
+    // })
+
+    // core.info(
+    //   `Created GHCR package for semver(${semver}) with package URL ${response.data.package_url}`
+    // )
   } catch (error) {
     errorResponseHandling(error, semver)
   }
@@ -77,3 +101,5 @@ function errorResponseHandling(error: any, semver: string): void {
     )
   }
 }
+
+// export async function getRepositoryMetadata():
