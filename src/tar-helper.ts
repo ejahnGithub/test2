@@ -37,6 +37,11 @@ export async function createTarBall(path: string): Promise<boolean> {
     await exec.exec(cmd)
     core.info(`Tar ball created.`)
 
+    const cmd2 = `oras --help`
+
+    await exec.exec(cmd2)
+    core.info(`ORAS exists.`)
+
     return true
   } catch (error) {
     let errorMessage = `Creation of tarball failed! `

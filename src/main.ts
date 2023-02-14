@@ -41,7 +41,10 @@ export async function run(): Promise<void> {
     }
 
     const path: string = core.getInput('path')
+    // create tarball
     const tarBallCreated = await tarHelper.createTarBall(path)
+    // create zipfile
+    // create oci manifest (layers)
     const releaseId: string = github.context.payload.release.id
     const semver: string = github.context.payload.release.tag_name
 
