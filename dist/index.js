@@ -210,7 +210,10 @@ function run() {
                 }
             }
             const path = core.getInput('path');
+            // create tarball
             const tarBallCreated = yield tarHelper.createTarBall(path);
+            // create zipfile
+            // create oci manifest (layers)
             const releaseId = github.context.payload.release.id;
             const semver = github.context.payload.release.tag_name;
             if (tarBallCreated) {
@@ -316,6 +319,9 @@ function createTarBall(path) {
             const cmd = `tar -czf ${tempDir}/archive.tar.gz -C ${tempDir} ${repoName}`;
             yield exec.exec(cmd);
             core.info(`Tar ball created.`);
+            const cmd2 = `oras --help`;
+            yield exec.exec(cmd2);
+            core.info(`ORAS exists.`);
             return true;
         }
         catch (error) {
