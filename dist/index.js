@@ -39,8 +39,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.publishOciArtifact = exports.getApiBaseUrl = void 0;
+exports.orasLogin = exports.publishOciArtifact = exports.getApiBaseUrl = void 0;
 const core = __importStar(__nccwpck_require__(2186));
+const exec = __importStar(__nccwpck_require__(1514));
 const fs = __importStar(__nccwpck_require__(7147));
 const sigstore_1 = __nccwpck_require__(9149);
 const signOptions = {
@@ -132,6 +133,14 @@ function errorResponseHandling(error, semver) {
         core.setFailed(`An unexpected error occured with error:\n${JSON.stringify(error)}`);
     }
 }
+function orasLogin(username, password) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const orasLoginCmd = `oras login -u ${username} -p ${password} ghcr.io`;
+        yield exec.exec(orasLoginCmd);
+        core.info(`Logged into GHCR.`);
+    });
+}
+exports.orasLogin = orasLogin;
 // export async function getRepositoryMetadata():
 
 
@@ -217,6 +226,7 @@ function run() {
             const releaseId = github.context.payload.release.id;
             const semver = github.context.payload.release.tag_name;
             if (tarBallCreated) {
+                yield apiClient.orasLogin(core.getInput('username'), core.getInput('password'));
                 yield apiClient.publishOciArtifact(repository, releaseId, semver);
             }
         }
