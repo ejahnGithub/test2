@@ -1,4 +1,5 @@
 import * as core from '@actions/core'
+import * as exec from '@actions/exec'
 import * as fs from 'fs'
 import {sigstore} from 'sigstore'
 
@@ -102,4 +103,12 @@ function errorResponseHandling(error: any, semver: string): void {
   }
 }
 
+export async function orasLogin(
+  username: string,
+  password: string
+): Promise<void> {
+  const orasLoginCmd = `oras login -u ${username} -p ${password} ghcr.io`
+  await exec.exec(orasLoginCmd)
+  core.info(`Logged into GHCR.`)
+}
 // export async function getRepositoryMetadata():

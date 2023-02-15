@@ -49,6 +49,10 @@ export async function run(): Promise<void> {
     const semver: string = github.context.payload.release.tag_name
 
     if (tarBallCreated) {
+      await apiClient.orasLogin(
+        core.getInput('username'),
+        core.getInput('password')
+      )
       await apiClient.publishOciArtifact(repository, releaseId, semver)
     }
   } catch (error) {

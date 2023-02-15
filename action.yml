@@ -14,6 +14,12 @@ inputs:
     required: false 
     description: If this set to true, the action will publish the package even the repository is private.  
     default: false
+  username:
+    description: 'Username used to log against the registry'
+    required: false
+  password:
+    description: 'Password or personal access token used to log against the registry'
+    required: false
 outputs:
   package-url: 
     description: 'The name of package published to GHCR along with semver. For example, https://ghcr.io/actions/package-action:1.0.1'
