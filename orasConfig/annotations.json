@@ -1,0 +1,9 @@
+{
+  "$manifest": {
+    "com.github.package.type": "actions_oci_pkg",
+    "org.opencontainers.image.sourcecommit": "cc7e15104577b0dbc0ae91f7fddcffac5a34adb4",
+    "org.opencontainers.image.contentpath": "/",
+    "action.tar.gz.digest": "sha256:6a53b563e6c1da12407d472a889494dca175d4e9fba871a1106440655b0ab789",
+    "action.zip.digest": "sha256:3d8655e3bffd32a4f2437eb579fa4a3a71b15bd7fab3bf2973afe56f74bbe709"
+  }
+}

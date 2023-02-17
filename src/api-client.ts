@@ -31,6 +31,16 @@ export async function publishOciArtifact(
 
     const buffer = fs.readFileSync(`${tempDir}/archive.tar.gz`)
 
+    // create and push OCI manifest
+    const annotationsJSONPath = 'annotations.json'
+    const mediaType = 'application/vnd.github.actions.package.config.v1+json'
+    const configJSONPath = 'config.json'
+    const tarballPath = `${tempDir}/archive.tar.gz`
+    const zipPath = `${tempDir}/archive.zip`
+
+    const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ghcr.io/${repository}/actions/${semver} ${tarballPath}:${mediaType} ${zipPath}:${mediaType}`
+    await exec.exec(ociPushCmd)
+
     // Sign the package and get attestations
     const attestations = await sigstore.sign(buffer)
 

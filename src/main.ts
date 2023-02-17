@@ -44,11 +44,13 @@ export async function run(): Promise<void> {
     // create tarball
     const tarBallCreated = await tarHelper.createTarBall(path)
     // create zipfile
+    const zipfileCreated = await tarHelper.createZip(path)
+
     // create oci manifest (layers)
     const releaseId: string = github.context.payload.release.id
     const semver: string = github.context.payload.release.tag_name
 
-    if (tarBallCreated) {
+    if (tarBallCreated && zipfileCreated) {
       await apiClient.orasLogin(
         core.getInput('username'),
         core.getInput('password')

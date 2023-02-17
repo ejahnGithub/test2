@@ -2,6 +2,55 @@ import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 import * as fs from 'fs'
 
+// Creates a zip of the inputs specified in path input or the entire contents
+export async function createZip(path: string): Promise<boolean> {
+  const tempDir = '/tmp'
+  const repoNwo: string = process.env.GITHUB_REPOSITORY || ''
+  const repoParse = repoNwo.split('/')
+  const repoName: string = repoParse[1]
+  try {
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir)
+    }
+
+    const pathArray: string[] = path.trim().split(/\s+/)
+    if (!isValidPath(pathArray)) {
+      throw new Error(
+        'Invalid path. Please ensure the path input has a valid path defined and separated by a space if you want multiple files/folders to be packaged.'
+      )
+    }
+
+    if (!fs.existsSync(`${tempDir}/${repoName}`)) {
+      fs.mkdirSync(`${tempDir}/${repoName}`)
+    }
+
+    for await (const filePath of pathArray) {
+      await exec.exec(`cp -r ${filePath} ${tempDir}/${repoName}`)
+    }
+
+    if (!isActionYamlPresentInPathSrc(pathArray)) {
+      await copyActionFile(repoName)
+    }
+
+    const cmd = `zip -r ${tempDir}/archive.zip  ${tempDir}/${repoName}`
+
+    await exec.exec(cmd)
+    core.info(`Zipfile created.`)
+
+    return true
+  } catch (error) {
+    let errorMessage = `Creation of zipfile failed! `
+    if (error instanceof Error && error.message)
+      errorMessage += `${error.message}`
+    core.setFailed(errorMessage)
+    return false
+  } finally {
+    if (fs.existsSync(`${tempDir}/${repoName}`)) {
+      await exec.exec(`rm -rf ${tempDir}/${repoName}`)
+    }
+  }
+}
+
 // Creates a tar.gzip of the inputs specified in path input or the entire contents
 export async function createTarBall(path: string): Promise<boolean> {
   const tempDir = '/tmp'
@@ -36,11 +85,6 @@ export async function createTarBall(path: string): Promise<boolean> {
 
     await exec.exec(cmd)
     core.info(`Tar ball created.`)
-
-    const cmd2 = `oras --help`
-
-    await exec.exec(cmd2)
-    core.info(`ORAS exists.`)
 
     return true
   } catch (error) {
