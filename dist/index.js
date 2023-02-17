@@ -71,7 +71,7 @@ function publishOciArtifact(repository, releaseId, semver) {
             const configJSONPath = 'orasConfig/config.json';
             const tarballPath = `${tempDir}/archive.tar.gz`;
             const zipPath = `${tempDir}/archive.zip`;
-            const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ghcr.io/${repository}/${semver} ${tarballPath}:${mediaType} ${zipPath}:${mediaType}`;
+            const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ghcr.io/${repository}:${semver} ${tarballPath}:${mediaType} ${zipPath}:${mediaType}`;
             yield exec.exec(ociPushCmd);
             // Sign the package and get attestations
             const attestations = yield sigstore_1.sigstore.sign(buffer);
