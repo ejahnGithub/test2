@@ -19,7 +19,7 @@ jobs:
         with:
           force-publish-private-repo: true
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.TEST_TOKEN }}
 
       - name: Archive tarball
         uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3
