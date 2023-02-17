@@ -37,8 +37,9 @@ export async function publishOciArtifact(
     const configJSONPath = 'orasConfig/config.json'
     const tarballPath = `${tempDir}/archive.tar.gz`
     const zipPath = `${tempDir}/archive.zip`
+    const ghcrRepo = `ghcr.io/${repository}:${semver}`.toLowerCase()
 
-    const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ghcr.io/${repository}:${semver} ${tarballPath}:${mediaType} ${zipPath}:${mediaType}`
+    const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${mediaType} ${zipPath}:${mediaType}`
     await exec.exec(ociPushCmd)
 
     // Sign the package and get attestations
