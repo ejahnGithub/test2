@@ -68,11 +68,13 @@ function publishOciArtifact(repository, releaseId, semver) {
             // create and push OCI manifest
             const annotationsJSONPath = 'orasConfig/annotations.json';
             const mediaType = 'application/vnd.github.actions.package.config.v1+json';
+            const tarMediaType = 'application/vnd.github.actions.package.layer.v1.tar+gzip';
+            const zipMediaType = 'application/vnd.github.actions.package.layer.v1.zip';
             const configJSONPath = 'orasConfig/config.json';
             const tarballPath = `${tempDir}/archive.tar.gz`;
             const zipPath = `${tempDir}/archive.zip`;
             const ghcrRepo = `ghcr.io/${repository}:${semver}`.toLowerCase();
-            const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${mediaType} ${zipPath}:${mediaType}`;
+            const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${tarMediaType} ${zipPath}:${zipMediaType}`;
             yield exec.exec(ociPushCmd);
             // Sign the package and get attestations
             const attestations = yield sigstore_1.sigstore.sign(buffer);
