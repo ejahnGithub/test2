@@ -66,9 +66,9 @@ function publishOciArtifact(repository, releaseId, semver) {
             const tempDir = '/tmp';
             const buffer = fs.readFileSync(`${tempDir}/archive.tar.gz`);
             // create and push OCI manifest
-            const annotationsJSONPath = 'annotations.json';
+            const annotationsJSONPath = 'orasConfig/annotations.json';
             const mediaType = 'application/vnd.github.actions.package.config.v1+json';
-            const configJSONPath = 'config.json';
+            const configJSONPath = 'orasConfig/config.json';
             const tarballPath = `${tempDir}/archive.tar.gz`;
             const zipPath = `${tempDir}/archive.zip`;
             const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ghcr.io/${repository}/actions/${semver} ${tarballPath}:${mediaType} ${zipPath}:${mediaType}`;

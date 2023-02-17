@@ -32,9 +32,9 @@ export async function publishOciArtifact(
     const buffer = fs.readFileSync(`${tempDir}/archive.tar.gz`)
 
     // create and push OCI manifest
-    const annotationsJSONPath = 'annotations.json'
+    const annotationsJSONPath = 'orasConfig/annotations.json'
     const mediaType = 'application/vnd.github.actions.package.config.v1+json'
-    const configJSONPath = 'config.json'
+    const configJSONPath = 'orasConfig/config.json'
     const tarballPath = `${tempDir}/archive.tar.gz`
     const zipPath = `${tempDir}/archive.zip`
 
