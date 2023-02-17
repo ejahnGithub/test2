@@ -3,23 +3,24 @@ on: # rebuild any PRs and main branch changes
   release:
     types: [created]
 jobs:
-  package-and-publish: 
+  package-and-publish:
     runs-on: ubuntu-latest
     permissions:
       actions: read
       id-token: write
       contents: read
+      packages: write
     steps:
       - name: Checking out!
         uses: actions/checkout@v3
-        
+
       - name: Publish action package
         uses: ./
         with:
           force-publish-private-repo: true
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Archive tarball
         uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3
         with:
