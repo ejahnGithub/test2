@@ -6,7 +6,7 @@ jobs:
   package-and-publish:
     runs-on: ubuntu-latest
     permissions:
-      actions: read
+      actions: write
       id-token: write
       contents: read
       packages: write
@@ -19,7 +19,7 @@ jobs:
         with:
           force-publish-private-repo: true
           username: ${{ github.actor }}
-          password: ${{ secrets.TEST_TOKEN }}
+          password: ${{ secrets.TEST_TOKEN_2 }}
 
       - name: Archive tarball
         uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3
