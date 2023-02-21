@@ -56,10 +56,14 @@ export async function publishOciArtifact(
     }
     // write the annotations to a json file
     const annotationsJSONPath = `${tempDir}/annotations.json`
-    fs.writeFileSync(annotationsJSONPath, JSON.stringify(annotations))
+    fs.writeFileSync(
+      annotationsJSONPath,
+      JSON.stringify(annotations, null, 2),
+      'utf8'
+    )
+    console.log('annotationsJSONPath', annotations)
 
-    // --annotation-file ${annotationsJSONPath}
-    const ociPushCmd = `oras push  --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${tarMediaType} ${zipPath}:${zipMediaType}`
+    const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${tarMediaType} ${zipPath}:${zipMediaType}`
     await exec.exec(ociPushCmd)
 
     // Sign the package and get attestations
