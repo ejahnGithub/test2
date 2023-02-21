@@ -2,7 +2,6 @@ import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 import crypto from 'crypto'
 import * as fs from 'fs'
-import {sigstore} from 'sigstore'
 
 //returns the API Base Url
 export function getApiBaseUrl(): string {
@@ -59,26 +58,28 @@ export async function publishOciArtifact(
     const annotationsJSONPath = `${tempDir}/annotations.json`
     fs.writeFileSync(annotationsJSONPath, JSON.stringify(annotations))
 
-    const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${tarMediaType} ${zipPath}:${zipMediaType}`
+    const exportedManifestPath = `${tempDir}/exported-manifest.json`
+
+    const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${tarMediaType} ${zipPath}:${zipMediaType} --export-manifest ${exportedManifestPath}`
     await exec.exec(ociPushCmd)
 
     // Sign the package and get attestations
-    const attestations = await sigstore.sign(buffer)
+    // const attestations = await sigstore.sign(buffer)
 
-    // write the attestations to a file
-    fs.writeFileSync(`${tempDir}/bundle.sigstore`, JSON.stringify(attestations))
-    core.info(`Created attestations from GHCR package for semver(${semver})`)
-    // verify the package
-    try {
-      // reload the package
-      const reloadedBuffer = fs.readFileSync(`${tempDir}/archive.tar.gz`)
+    // // write the attestations to a file
+    // fs.writeFileSync(`${tempDir}/bundle.sigstore`, JSON.stringify(attestations))
+    // core.info(`Created attestations from GHCR package for semver(${semver})`)
+    // // verify the package
+    // try {
+    //   // reload the package
+    //   const reloadedBuffer = fs.readFileSync(`${tempDir}/archive.tar.gz`)
 
-      await sigstore.verify(attestations, reloadedBuffer)
+    //   await sigstore.verify(attestations, reloadedBuffer)
 
-      core.info(`Verified the package for semver(${semver})`)
-    } catch (error) {
-      core.info(`Failed to verify the package with error: ${error}`)
-    }
+    //   core.info(`Verified the package for semver(${semver})`)
+    // } catch (error) {
+    //   core.info(`Failed to verify the package with error: ${error}`)
+    // }
 
     // const fileStream = fs.createReadStream(`${tempDir}/archive.tar.gz`)
 
@@ -142,4 +143,3 @@ export async function orasLogin(
   await exec.exec(orasLoginCmd)
   core.info(`Logged into GHCR.`)
 }
-// export async function getRepositoryMetadata():

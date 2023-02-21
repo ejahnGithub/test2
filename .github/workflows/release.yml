@@ -11,13 +11,6 @@ jobs:
       contents: read
       packages: write
     steps:
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Checking out!
         uses: actions/checkout@v3
 
@@ -45,3 +38,9 @@ jobs:
         with:
           name: zip
           path: /tmp/archive.zip
+
+      - name: Exported Manifest
+        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3
+        with:
+          name: manifest
+          path: /tmp/exported-manifest.json
