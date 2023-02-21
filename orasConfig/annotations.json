@@ -1,6 +1,0 @@
-{
-  "$manifest": {
-    "com.github.package.type": "actions_oci_pkg",
-    "org.opencontainers.image.contentpath": "/"
-  }
-}
