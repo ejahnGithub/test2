@@ -134,11 +134,8 @@ function errorResponseHandling(error: any, semver: string): void {
   }
 }
 
-export async function orasLogin(
-  username: string,
-  password: string
-): Promise<void> {
-  const orasLoginCmd = `oras login -u ${username} -p ${password} ghcr.io`
+export async function orasLogin(): Promise<void> {
+  const orasLoginCmd = `oras login ghcr.io`
   await exec.exec(orasLoginCmd)
   core.info(`Logged into GHCR.`)
 }

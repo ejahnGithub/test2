@@ -161,9 +161,9 @@ function errorResponseHandling(error, semver) {
         core.setFailed(`An unexpected error occured with error:\n${JSON.stringify(error)}`);
     }
 }
-function orasLogin(username, password) {
+function orasLogin() {
     return __awaiter(this, void 0, void 0, function* () {
-        const orasLoginCmd = `oras login -u ${username} -p ${password} ghcr.io`;
+        const orasLoginCmd = `oras login ghcr.io`;
         yield exec.exec(orasLoginCmd);
         core.info(`Logged into GHCR.`);
     });
@@ -256,7 +256,7 @@ function run() {
             const semver = github.context.payload.release.tag_name;
             const githubSHA = github.context.sha;
             if (tarBallCreated && zipfileCreated) {
-                yield apiClient.orasLogin(core.getInput('username'), core.getInput('password'));
+                yield apiClient.orasLogin();
                 yield apiClient.publishOciArtifact(repository, releaseId, semver, githubSHA);
             }
         }

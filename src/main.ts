@@ -53,10 +53,7 @@ export async function run(): Promise<void> {
     const githubSHA: string = github.context.sha
 
     if (tarBallCreated && zipfileCreated) {
-      await apiClient.orasLogin(
-        core.getInput('username'),
-        core.getInput('password')
-      )
+      await apiClient.orasLogin()
       await apiClient.publishOciArtifact(
         repository,
         releaseId,
