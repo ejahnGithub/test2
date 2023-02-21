@@ -2,6 +2,9 @@ import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 import crypto from 'crypto'
 import * as fs from 'fs'
+import {sigstore} from 'sigstore'
+
+const tempDir = '/tmp'
 
 //returns the API Base Url
 export function getApiBaseUrl(): string {
@@ -18,50 +21,23 @@ export async function publishOciArtifact(
   try {
     const TOKEN: string = core.getInput('token')
     core.setSecret(TOKEN)
+
+    const ociManifestPath = await orasPushArtifacts(
+      repository,
+      semver,
+      githubSHA
+    )
+
+    // sign the oci manifest
+    const ociManifestBuffer = fs.readFileSync(ociManifestPath)
+    const attestations = await sigstore.sign(ociManifestBuffer)
+    fs.writeFileSync(`${tempDir}/bundle.sigstore`, JSON.stringify(attestations))
+    core.info(`Created attestations from GHCR package for semver(${semver})`)
+
+    // TODO: push x y z to the dotcom
+
     // const path: string = core.getInput('path')
     // const publishPackageEndpoint = `${getApiBaseUrl()}/repos/${repository}/actions/package`
-
-    const tempDir = '/tmp'
-
-    const buffer = fs.readFileSync(`${tempDir}/archive.tar.gz`)
-    const zipfileBuffer = fs.readFileSync(`${tempDir}/archive.zip`)
-
-    const mediaType = 'application/vnd.github.actions.package.config.v1+json'
-    const tarMediaType =
-      'application/vnd.github.actions.package.layer.v1.tar+gzip'
-    const zipMediaType = 'application/vnd.github.actions.package.layer.v1.zip'
-
-    // TODO: should just be a txt file
-    const configJSONPath = 'orasConfig/config.txt'
-    const tarballPath = `${tempDir}/archive.tar.gz`
-    const zipPath = `${tempDir}/archive.zip`
-    const ghcrRepo = `ghcr.io/${repository}:${semver}`.toLowerCase()
-
-    // sha256 digest of the tarball
-    const digest = crypto.createHash('sha256').update(buffer).digest('hex')
-    const zipfileDigest = crypto
-      .createHash('sha256')
-      .update(zipfileBuffer)
-      .digest('hex')
-
-    // add digest into annotations
-    const annotations = {
-      $manifest: {
-        'com.github.package.type': 'actions_oci_pkg',
-        'org.opencontainers.image.sourcecommit': githubSHA,
-        'org.opencontainers.image.contentpath': '/',
-        'action.tar.gz.digest': `sha256:${digest}`,
-        'action.zip.digest': `sha256:${zipfileDigest}`
-      }
-    }
-    // write the annotations to a json file
-    const annotationsJSONPath = `${tempDir}/annotations.json`
-    fs.writeFileSync(annotationsJSONPath, JSON.stringify(annotations))
-
-    const exportedManifestPath = `${tempDir}/exported-manifest.json`
-
-    const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${tarMediaType} ${zipPath}:${zipMediaType} --export-manifest ${exportedManifestPath}`
-    await exec.exec(ociPushCmd)
 
     // Sign the package and get attestations
     // const attestations = await sigstore.sign(buffer)
@@ -70,16 +46,6 @@ export async function publishOciArtifact(
     // fs.writeFileSync(`${tempDir}/bundle.sigstore`, JSON.stringify(attestations))
     // core.info(`Created attestations from GHCR package for semver(${semver})`)
     // // verify the package
-    // try {
-    //   // reload the package
-    //   const reloadedBuffer = fs.readFileSync(`${tempDir}/archive.tar.gz`)
-
-    //   await sigstore.verify(attestations, reloadedBuffer)
-
-    //   core.info(`Verified the package for semver(${semver})`)
-    // } catch (error) {
-    //   core.info(`Failed to verify the package with error: ${error}`)
-    // }
 
     // const fileStream = fs.createReadStream(`${tempDir}/archive.tar.gz`)
 
@@ -142,4 +108,65 @@ export async function orasLogin(
   const orasLoginCmd = `oras login -u ${username} -p ${password} ghcr.io`
   await exec.exec(orasLoginCmd)
   core.info(`Logged into GHCR.`)
+}
+
+// Push the artifacts to GHCR using ORAS
+async function orasPushArtifacts(
+  repository: string,
+  semver: string,
+  githubSHA: string
+): Promise<string> {
+  const tarballPath = `${tempDir}/archive.tar.gz`
+  const zipfilePath = `${tempDir}/archive.zip`
+
+  const tarballBuffer = fs.readFileSync(tarballPath)
+  const zipfileBuffer = fs.readFileSync(zipfilePath)
+
+  const mediaType = 'application/vnd.github.actions.package.config.v1+json'
+  const tarMediaType =
+    'application/vnd.github.actions.package.layer.v1.tar+gzip'
+  const zipMediaType = 'application/vnd.github.actions.package.layer.v1.zip'
+  const configJSONPath = 'orasConfig/config.txt'
+  const ghcrRepo = `ghcr.io/${repository}:${semver}`.toLowerCase()
+  const exportedManifestPath = `${tempDir}/exported-manifest.json`
+  const annotationJSONPath = createAnnotationFile(
+    tarballBuffer,
+    zipfileBuffer,
+    githubSHA
+  )
+
+  const ociPushCmd = `oras push --annotation-file ${annotationJSONPath} --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${tarMediaType} ${zipfilePath}:${zipMediaType} --export-manifest ${exportedManifestPath}`
+  await exec.exec(ociPushCmd)
+
+  return exportedManifestPath
+}
+
+// Create the annotation file for the ORAS push
+function createAnnotationFile(
+  tarballBuffer: Buffer,
+  zipfileBuffer: Buffer,
+  githubSHA: string
+): string {
+  // create annotation for the manifest
+  // sha256 digest of each layer
+  const digest = crypto.createHash('sha256').update(tarballBuffer).digest('hex')
+  const zipfileDigest = crypto
+    .createHash('sha256')
+    .update(zipfileBuffer)
+    .digest('hex')
+
+  // add digest into annotation
+  const annotation = {
+    $manifest: {
+      'com.github.package.type': 'actions_oci_pkg',
+      'org.opencontainers.image.sourcecommit': githubSHA,
+      'org.opencontainers.image.contentpath': '/',
+      'action.tar.gz.digest': `sha256:${digest}`,
+      'action.zip.digest': `sha256:${zipfileDigest}`
+    }
+  }
+  // write the annotation to a json file
+  const annotationJSONPath = `${tempDir}/annotation.json`
+  fs.writeFileSync(annotationJSONPath, JSON.stringify(annotation))
+  return annotationJSONPath
 }

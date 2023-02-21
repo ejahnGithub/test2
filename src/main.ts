@@ -46,10 +46,8 @@ export async function run(): Promise<void> {
     // create zipfile
     const zipfileCreated = await tarHelper.createZip(path)
 
-    // create oci manifest (layers)
     const releaseId: string = github.context.payload.release.id
     const semver: string = github.context.payload.release.tag_name
-
     const githubSHA: string = github.context.sha
 
     if (tarBallCreated && zipfileCreated) {
