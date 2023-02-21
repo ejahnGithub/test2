@@ -91,8 +91,8 @@ function publishOciArtifact(repository, releaseId, semver, githubSHA) {
             // write the annotations to a json file
             const annotationsJSONPath = `${tempDir}/annotations.json`;
             fs.writeFileSync(annotationsJSONPath, JSON.stringify(annotations));
-            const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${tarMediaType} ${zipPath}:${zipMediaType}`;
-            yield exec.exec(ociPushCmd);
+            // const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${tarMediaType} ${zipPath}:${zipMediaType}`
+            // await exec.exec(ociPushCmd)
             // Sign the package and get attestations
             const attestations = yield sigstore_1.sigstore.sign(buffer);
             // write the attestations to a file
@@ -161,9 +161,9 @@ function errorResponseHandling(error, semver) {
         core.setFailed(`An unexpected error occured with error:\n${JSON.stringify(error)}`);
     }
 }
-function orasLogin() {
+function orasLogin(username, password) {
     return __awaiter(this, void 0, void 0, function* () {
-        const orasLoginCmd = `oras login ghcr.io --registry-config  ~/.docker/config.json`;
+        const orasLoginCmd = `oras login -u ${username} -p ${password} ghcr.io`;
         yield exec.exec(orasLoginCmd);
         core.info(`Logged into GHCR.`);
     });
@@ -256,7 +256,7 @@ function run() {
             const semver = github.context.payload.release.tag_name;
             const githubSHA = github.context.sha;
             if (tarBallCreated && zipfileCreated) {
-                yield apiClient.orasLogin();
+                yield apiClient.orasLogin(core.getInput('username'), core.getInput('password'));
                 yield apiClient.publishOciArtifact(repository, releaseId, semver, githubSHA);
             }
         }

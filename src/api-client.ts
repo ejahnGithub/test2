@@ -59,8 +59,8 @@ export async function publishOciArtifact(
     const annotationsJSONPath = `${tempDir}/annotations.json`
     fs.writeFileSync(annotationsJSONPath, JSON.stringify(annotations))
 
-    const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${tarMediaType} ${zipPath}:${zipMediaType}`
-    await exec.exec(ociPushCmd)
+    // const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${tarMediaType} ${zipPath}:${zipMediaType}`
+    // await exec.exec(ociPushCmd)
 
     // Sign the package and get attestations
     const attestations = await sigstore.sign(buffer)
@@ -134,8 +134,11 @@ function errorResponseHandling(error: any, semver: string): void {
   }
 }
 
-export async function orasLogin(): Promise<void> {
-  const orasLoginCmd = `oras login ghcr.io --registry-config  ~/.docker/config.json`
+export async function orasLogin(
+  username: string,
+  password: string
+): Promise<void> {
+  const orasLoginCmd = `oras login -u ${username} -p ${password} ghcr.io`
   await exec.exec(orasLoginCmd)
   core.info(`Logged into GHCR.`)
 }
