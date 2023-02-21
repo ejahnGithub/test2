@@ -51,17 +51,11 @@ export async function publishOciArtifact(
       'org.opencontainers.image.sourcecommit': githubSHA,
       'org.opencontainers.image.contentpath': '/',
       'action.tar.gz.digest': `sha256:${digest}`,
-      'action.zip.digest': `sha256:${zipfileDigest}`,
-      'release.id': releaseId
+      'action.zip.digest': `sha256:${zipfileDigest}`
     }
     // write the annotations to a json file
     const annotationsJSONPath = `${tempDir}/annotations.json`
-    fs.writeFileSync(
-      annotationsJSONPath,
-      JSON.stringify(annotations, null, 2),
-      'utf8'
-    )
-    console.log('annotationsJSONPath', annotations)
+    fs.writeFileSync(annotationsJSONPath, JSON.stringify(annotations))
 
     const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${tarMediaType} ${zipPath}:${zipMediaType}`
     await exec.exec(ociPushCmd)
