@@ -54,11 +54,12 @@ export async function publishOciArtifact(
       'action.zip.digest': `sha256:${zipfileDigest}`,
       'release.id': releaseId
     }
-    // write the annotations to a file
+    // write the annotations to a json file
     const annotationsJSONPath = `${tempDir}/annotations.json`
     fs.writeFileSync(annotationsJSONPath, JSON.stringify(annotations))
 
-    const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${tarMediaType} ${zipPath}:${zipMediaType}`
+    // --annotation-file ${annotationsJSONPath}
+    const ociPushCmd = `oras push  --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${tarMediaType} ${zipPath}:${zipMediaType}`
     await exec.exec(ociPushCmd)
 
     // Sign the package and get attestations
