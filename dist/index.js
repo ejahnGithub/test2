@@ -80,17 +80,19 @@ function publishOciArtifact(repository, releaseId, semver, githubSHA) {
                 .digest('hex');
             // add digest into annotations
             const annotations = {
-                'com.github.package.type': 'actions_oci_pkg',
-                'org.opencontainers.image.sourcecommit': githubSHA,
-                'org.opencontainers.image.contentpath': '/',
-                'action.tar.gz.digest': `sha256:${digest}`,
-                'action.zip.digest': `sha256:${zipfileDigest}`
+                $manifest: {
+                    'com.github.package.type': 'actions_oci_pkg',
+                    'org.opencontainers.image.sourcecommit': githubSHA,
+                    'org.opencontainers.image.contentpath': '/',
+                    'action.tar.gz.digest': `sha256:${digest}`,
+                    'action.zip.digest': `sha256:${zipfileDigest}`
+                }
             };
             // write the annotations to a json file
             const annotationsJSONPath = `${tempDir}/annotations.json`;
             fs.writeFileSync(annotationsJSONPath, JSON.stringify(annotations));
-            // const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${tarMediaType} ${zipPath}:${zipMediaType}`
-            // await exec.exec(ociPushCmd)
+            const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${tarMediaType} ${zipPath}:${zipMediaType}`;
+            yield exec.exec(ociPushCmd);
             // Sign the package and get attestations
             const attestations = yield sigstore_1.sigstore.sign(buffer);
             // write the attestations to a file
