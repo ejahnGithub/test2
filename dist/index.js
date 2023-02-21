@@ -130,9 +130,21 @@ function errorResponseHandling(error, semver) {
 }
 function orasLogin(username, password) {
     return __awaiter(this, void 0, void 0, function* () {
-        const orasLoginCmd = `oras login -u ${username} -p ${password} ghcr.io`;
-        yield exec.exec(orasLoginCmd);
-        core.info(`Logged into GHCR.`);
+        const loginArgs = ['login', '--password-stdin'];
+        loginArgs.push('--username', username);
+        loginArgs.push('ghcr.io');
+        yield exec
+            .getExecOutput('oras', loginArgs, {
+            ignoreReturnCode: true,
+            silent: true,
+            input: Buffer.from(password)
+        })
+            .then((res) => {
+            if (res.stderr.length > 0 && res.exitCode != 0) {
+                throw new Error(res.stderr.trim());
+            }
+            core.info(`Login Succeeded!`);
+        });
     });
 }
 exports.orasLogin = orasLogin;

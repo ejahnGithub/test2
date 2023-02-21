@@ -105,9 +105,22 @@ export async function orasLogin(
   username: string,
   password: string
 ): Promise<void> {
-  const orasLoginCmd = `oras login -u ${username} -p ${password} ghcr.io`
-  await exec.exec(orasLoginCmd)
-  core.info(`Logged into GHCR.`)
+  const loginArgs: Array<string> = ['login', '--password-stdin']
+  loginArgs.push('--username', username)
+  loginArgs.push('ghcr.io')
+
+  await exec
+    .getExecOutput('oras', loginArgs, {
+      ignoreReturnCode: true,
+      silent: true,
+      input: Buffer.from(password)
+    })
+    .then((res: {stderr: string; exitCode: number}) => {
+      if (res.stderr.length > 0 && res.exitCode != 0) {
+        throw new Error(res.stderr.trim())
+      }
+      core.info(`Login Succeeded!`)
+    })
 }
 
 // Push the artifacts to GHCR using ORAS
