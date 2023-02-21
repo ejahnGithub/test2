@@ -163,7 +163,7 @@ function errorResponseHandling(error, semver) {
 }
 function orasLogin() {
     return __awaiter(this, void 0, void 0, function* () {
-        const orasLoginCmd = `oras login ghcr.io`;
+        const orasLoginCmd = `oras login ghcr.io --registry-config  ~/.docker/config.json`;
         yield exec.exec(orasLoginCmd);
         core.info(`Logged into GHCR.`);
     });

@@ -135,7 +135,7 @@ function errorResponseHandling(error: any, semver: string): void {
 }
 
 export async function orasLogin(): Promise<void> {
-  const orasLoginCmd = `oras login ghcr.io`
+  const orasLoginCmd = `oras login ghcr.io --registry-config  ~/.docker/config.json`
   await exec.exec(orasLoginCmd)
   core.info(`Logged into GHCR.`)
 }
