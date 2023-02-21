@@ -38,25 +38,23 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.orasLogin = exports.publishOciArtifact = exports.getApiBaseUrl = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
+const crypto_1 = __importDefault(__nccwpck_require__(6113));
 const fs = __importStar(__nccwpck_require__(7147));
 const sigstore_1 = __nccwpck_require__(9149);
-const signOptions = {
-// oidcClientID: ?, //'sigstore',
-// oidcIssuer: ?, //'https://oauth2.sigstore.dev/auth',
-// rekorBaseURL: ,//sigstore.DEFAULT_REKOR_BASE_URL,
-// fulcioBaseURL: ,
-};
 //returns the API Base Url
 function getApiBaseUrl() {
     return process.env.GITHUB_API_URL || 'https://api.github.com';
 }
 exports.getApiBaseUrl = getApiBaseUrl;
 // Publish the Action Artifact to GHCR by calling the post API
-function publishOciArtifact(repository, releaseId, semver) {
+function publishOciArtifact(repository, releaseId, semver, githubSHA) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const TOKEN = core.getInput('token');
@@ -65,15 +63,33 @@ function publishOciArtifact(repository, releaseId, semver) {
             // const publishPackageEndpoint = `${getApiBaseUrl()}/repos/${repository}/actions/package`
             const tempDir = '/tmp';
             const buffer = fs.readFileSync(`${tempDir}/archive.tar.gz`);
-            // create and push OCI manifest
-            const annotationsJSONPath = 'orasConfig/annotations.json';
+            const zipfileBuffer = fs.readFileSync(`${tempDir}/archive.zip`);
             const mediaType = 'application/vnd.github.actions.package.config.v1+json';
             const tarMediaType = 'application/vnd.github.actions.package.layer.v1.tar+gzip';
             const zipMediaType = 'application/vnd.github.actions.package.layer.v1.zip';
-            const configJSONPath = 'orasConfig/config.json';
+            // TODO: should just be a txt file
+            const configJSONPath = 'orasConfig/config.txt';
             const tarballPath = `${tempDir}/archive.tar.gz`;
             const zipPath = `${tempDir}/archive.zip`;
             const ghcrRepo = `ghcr.io/${repository}:${semver}`.toLowerCase();
+            // sha256 digest of the tarball
+            const digest = crypto_1.default.createHash('sha256').update(buffer).digest('hex');
+            const zipfileDigest = crypto_1.default
+                .createHash('sha256')
+                .update(zipfileBuffer)
+                .digest('hex');
+            // add digest into annotations
+            const annotations = {
+                'com.github.package.type': 'actions_oci_pkg',
+                'org.opencontainers.image.sourcecommit': githubSHA,
+                'org.opencontainers.image.contentpath': '/',
+                'action.tar.gz.digest': `sha256:${digest}`,
+                'action.zip.digest': `sha256:${zipfileDigest}`,
+                'release.id': releaseId
+            };
+            // write the annotations to a file
+            const annotationsJSONPath = `${tempDir}/annotations.json`;
+            fs.writeFileSync(annotationsJSONPath, JSON.stringify(annotations));
             const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${tarMediaType} ${zipPath}:${zipMediaType}`;
             yield exec.exec(ociPushCmd);
             // Sign the package and get attestations
@@ -237,9 +253,10 @@ function run() {
             // create oci manifest (layers)
             const releaseId = github.context.payload.release.id;
             const semver = github.context.payload.release.tag_name;
+            const githubSHA = github.context.sha;
             if (tarBallCreated && zipfileCreated) {
                 yield apiClient.orasLogin(core.getInput('username'), core.getInput('password'));
-                yield apiClient.publishOciArtifact(repository, releaseId, semver);
+                yield apiClient.publishOciArtifact(repository, releaseId, semver, githubSHA);
             }
         }
         catch (error) {

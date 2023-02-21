@@ -1,14 +1,8 @@
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
+import crypto from 'crypto'
 import * as fs from 'fs'
 import {sigstore} from 'sigstore'
-
-const signOptions = {
-  // oidcClientID: ?, //'sigstore',
-  // oidcIssuer: ?, //'https://oauth2.sigstore.dev/auth',
-  // rekorBaseURL: ,//sigstore.DEFAULT_REKOR_BASE_URL,
-  // fulcioBaseURL: ,
-}
 
 //returns the API Base Url
 export function getApiBaseUrl(): string {
@@ -19,7 +13,8 @@ export function getApiBaseUrl(): string {
 export async function publishOciArtifact(
   repository: string,
   releaseId: string,
-  semver: string
+  semver: string,
+  githubSHA: string
 ): Promise<void> {
   try {
     const TOKEN: string = core.getInput('token')
@@ -30,18 +25,38 @@ export async function publishOciArtifact(
     const tempDir = '/tmp'
 
     const buffer = fs.readFileSync(`${tempDir}/archive.tar.gz`)
+    const zipfileBuffer = fs.readFileSync(`${tempDir}/archive.zip`)
 
-    // create and push OCI manifest
-    const annotationsJSONPath = 'orasConfig/annotations.json'
     const mediaType = 'application/vnd.github.actions.package.config.v1+json'
     const tarMediaType =
       'application/vnd.github.actions.package.layer.v1.tar+gzip'
     const zipMediaType = 'application/vnd.github.actions.package.layer.v1.zip'
 
-    const configJSONPath = 'orasConfig/config.json'
+    // TODO: should just be a txt file
+    const configJSONPath = 'orasConfig/config.txt'
     const tarballPath = `${tempDir}/archive.tar.gz`
     const zipPath = `${tempDir}/archive.zip`
     const ghcrRepo = `ghcr.io/${repository}:${semver}`.toLowerCase()
+
+    // sha256 digest of the tarball
+    const digest = crypto.createHash('sha256').update(buffer).digest('hex')
+    const zipfileDigest = crypto
+      .createHash('sha256')
+      .update(zipfileBuffer)
+      .digest('hex')
+
+    // add digest into annotations
+    const annotations = {
+      'com.github.package.type': 'actions_oci_pkg',
+      'org.opencontainers.image.sourcecommit': githubSHA,
+      'org.opencontainers.image.contentpath': '/',
+      'action.tar.gz.digest': `sha256:${digest}`,
+      'action.zip.digest': `sha256:${zipfileDigest}`,
+      'release.id': releaseId
+    }
+    // write the annotations to a file
+    const annotationsJSONPath = `${tempDir}/annotations.json`
+    fs.writeFileSync(annotationsJSONPath, JSON.stringify(annotations))
 
     const ociPushCmd = `oras push --annotation-file ${annotationsJSONPath} --config ${configJSONPath}:${mediaType} ${ghcrRepo} ${tarballPath}:${tarMediaType} ${zipPath}:${zipMediaType}`
     await exec.exec(ociPushCmd)

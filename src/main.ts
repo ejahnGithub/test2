@@ -50,12 +50,19 @@ export async function run(): Promise<void> {
     const releaseId: string = github.context.payload.release.id
     const semver: string = github.context.payload.release.tag_name
 
+    const githubSHA: string = github.context.sha
+
     if (tarBallCreated && zipfileCreated) {
       await apiClient.orasLogin(
         core.getInput('username'),
         core.getInput('password')
       )
-      await apiClient.publishOciArtifact(repository, releaseId, semver)
+      await apiClient.publishOciArtifact(
+        repository,
+        releaseId,
+        semver,
+        githubSHA
+      )
     }
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
